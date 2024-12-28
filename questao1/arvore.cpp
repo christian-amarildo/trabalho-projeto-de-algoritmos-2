@@ -1,207 +1,265 @@
 #include "arvore.h"
-#include <cstdlib>
 #include <iostream>
 #include <stack>
+#include <algorithm> // Para std::max
 
 using namespace std;
 
-typedef struct t_no {
-  int chave;
-  struct t_no *esq;
-  struct t_no *dir;
-  int altura;  // Altura do nó na árvore AVL
-} t_no, *t_arvore;
-
-// Função para criar um nó
-t_no *criaNo(void) {
-  t_no *novoNo = (t_no *)malloc(sizeof(t_no));
-  if (novoNo != NULL) {
-    novoNo->esq = novoNo->dir = NULL;
-    novoNo->chave = 0;
-    novoNo->altura = 1;  // Inicializa com altura 1
-  }
-  return novoNo;
+// Cria um novo nó com o valor especificado
+s_no* criaNo(int valor) {
+    s_no* novoNo = new s_no;
+    if (novoNo != nullptr) {
+        novoNo->chave = valor;
+        novoNo->esq = novoNo->dir = nullptr;
+        novoNo->altura = 1; // Altura inicial
+    }
+    return novoNo;
 }
 
-// Função para calcular a altura de um nó
-int altura(t_no *n) {
-  if (n == NULL) return 0;
-  return n->altura;
+// Retorna a altura de um nó
+int altura(s_no* no) {
+    if (no == nullptr)
+        return 0;
+    return no->altura;
 }
 
-// Função para calcular o fator de balanceamento de um nó
-int balanceamento(t_no *n) {
-  if (n == NULL) return 0;
-  return altura(n->esq) - altura(n->dir);
+// Atualiza a altura de um nó
+void atualizaAltura(s_no* no) {
+    if (no != nullptr)
+        no->altura = 1 + max(altura(no->esq), altura(no->dir));
 }
 
-// Função para atualizar a altura de um nó
-void atualizarAltura(t_no *n) {
-  if (n != NULL) {
-    n->altura = 1 + max(altura(n->esq), altura(n->dir));
-  }
+// Calcula o fator de balanceamento de um nó
+int getBalance(s_no* no) {
+    if (no == nullptr)
+        return 0;
+    return altura(no->esq) - altura(no->dir);
 }
 
-// Função para fazer uma rotação à esquerda
-t_no* rotacaoEsquerda(t_no *x) {
-  t_no *y = x->dir;
-  t_no *T2 = y->esq;
+// Rotação à direita
+s_no* rotacaoDireita(s_no* y) {
+    s_no* x = y->esq;
+    s_no* T2 = x->dir;
 
-  y->esq = x;
-  x->dir = T2;
+    // Realiza a rotação
+    x->dir = y;
+    y->esq = T2;
 
-  atualizarAltura(x);
-  atualizarAltura(y);
+    // Atualiza alturas
+    atualizaAltura(y);
+    atualizaAltura(x);
 
-  return y;
+    // Retorna a nova raiz
+    return x;
 }
 
-// Função para fazer uma rotação à direita
-t_no* rotacaoDireita(t_no *y) {
-  t_no *x = y->esq;
-  t_no *T2 = x->dir;
+// Rotação à esquerda
+s_no* rotacaoEsquerda(s_no* x) {
+    s_no* y = x->dir;
+    s_no* T2 = y->esq;
 
-  x->dir = y;
-  y->esq = T2;
+    // Realiza a rotação
+    y->esq = x;
+    x->dir = T2;
 
-  atualizarAltura(y);
-  atualizarAltura(x);
+    // Atualiza alturas
+    atualizaAltura(x);
+    atualizaAltura(y);
 
-  return x;
+    // Retorna a nova raiz
+    return y;
 }
 
 // Função para balancear um nó
-t_no* balancear(t_no *n) {
-  if (n == NULL) return n;
+s_no* balancear(s_no* no) {
+    atualizaAltura(no);
+    int balance = getBalance(no);
 
-  int fator = balanceamento(n);
+    // Caso 1: Desbalanceado à esquerda
+    if (balance > 1) {
+        // Caso 1.1: LL
+        if (getBalance(no->esq) >= 0)
+            return rotacaoDireita(no);
+        // Caso 1.2: LR
+        else {
+            no->esq = rotacaoEsquerda(no->esq);
+            return rotacaoDireita(no);
+        }
+    }
 
-  // Caso de rotação à esquerda
-  if (fator > 1 && balanceamento(n->esq) >= 0) {
-    return rotacaoDireita(n);
-  }
+    // Caso 2: Desbalanceado à direita
+    if (balance < -1) {
+        // Caso 2.1: RR
+        if (getBalance(no->dir) <= 0)
+            return rotacaoEsquerda(no);
+        // Caso 2.2: RL
+        else {
+            no->dir = rotacaoDireita(no->dir);
+            return rotacaoEsquerda(no);
+        }
+    }
 
-  // Caso de rotação à direita
-  if (fator < -1 && balanceamento(n->dir) <= 0) {
-    return rotacaoEsquerda(n);
-  }
+    // Sem desbalanceamento
+    return no;
+}
 
-  // Caso de rotação dupla (esquerda-direita)
-  if (fator > 1 && balanceamento(n->esq) < 0) {
-    n->esq = rotacaoEsquerda(n->esq);
-    return rotacaoDireita(n);
-  }
+// Função auxiliar para inserção com balanceamento
+s_no* inserirAVL(s_no* node, int valor, bool &result) {
+    // Inserção padrão em BST
+    if (node == nullptr) {
+        node = criaNo(valor);
+        if (node != nullptr)
+            result = true;
+        return node;
+    }
 
-  // Caso de rotação dupla (direita-esquerda)
-  if (fator < -1 && balanceamento(n->dir) > 0) {
-    n->dir = rotacaoDireita(n->dir);
-    return rotacaoEsquerda(n);
-  }
+    if (valor < node->chave)
+        node->esq = inserirAVL(node->esq, valor, result);
+    else if (valor > node->chave)
+        node->dir = inserirAVL(node->dir, valor, result);
+    else { // Valor já existe
+        cout << "Valor já existe na árvore.\n";
+        result = false;
+        return node;
+    }
 
-  return n;
+    // Atualiza a altura do ancestral
+    atualizaAltura(node);
+
+    // Balanceia o nó
+    node = balancear(node);
+
+    return node;
 }
 
 // Função para inserir um valor na árvore AVL
-t_no* inserir(t_no* n, int chave) {
-  if (n == NULL) return criaNo();
+bool inserir(t_arvore* raiz, int valor) {
+    bool result = false;
+    *raiz = inserirAVL(*raiz, valor, result);
+    return result;
+}
 
-  if (chave < n->chave) {
-    n->esq = inserir(n->esq, chave);
-  } else if (chave > n->chave) {
-    n->dir = inserir(n->dir, chave);
-  } else {
-    return n;  // Não permite duplicatas
-  }
+// Encontra o nó com o menor valor na subárvore
+s_no* minValueNode(s_no* node) {
+    s_no* current = node;
+    while (current->esq != nullptr)
+        current = current->esq;
+    return current;
+}
 
-  atualizarAltura(n);
-  return balancear(n);
+// Função auxiliar para remoção com balanceamento
+s_no* removerAVL(s_no* root, int valor, bool &result) {
+    // Remoção padrão em BST
+    if (root == nullptr) {
+        result = false;
+        return root;
+    }
+
+    if (valor < root->chave)
+        root->esq = removerAVL(root->esq, valor, result);
+    else if (valor > root->chave)
+        root->dir = removerAVL(root->dir, valor, result);
+    else {
+        // Nó encontrado
+        result = true;
+        if ((root->esq == nullptr) || (root->dir == nullptr)) {
+            s_no* temp = root->esq ? root->esq : root->dir;
+
+            // Caso 1: Sem filhos
+            if (temp == nullptr) {
+                temp = root;
+                root = nullptr;
+            }
+            else // Caso 2: Com um filho
+                *root = *temp; // Copia o conteúdo do filho
+
+            delete temp;
+        }
+        else {
+            // Caso 3: Nó com dois filhos
+            s_no* temp = minValueNode(root->dir);
+            root->chave = temp->chave;
+            root->dir = removerAVL(root->dir, temp->chave, result);
+        }
+    }
+
+    // Se a árvore tinha apenas um nó
+    if (root == nullptr)
+        return root;
+
+    // Atualiza a altura
+    atualizaAltura(root);
+
+    // Balanceia o nó
+    root = balancear(root);
+
+    return root;
+}
+
+// Função para remover um valor da árvore AVL
+bool remover(t_arvore* raiz, int valor) {
+    bool result = false;
+    *raiz = removerAVL(*raiz, valor, result);
+    return result;
 }
 
 // Função para pesquisar um valor na árvore AVL
-t_no* pesquisar(t_no* n, int chave) {
-  if (n == NULL || n->chave == chave) {
-    return n;
-  }
-
-  if (chave < n->chave) {
-    return pesquisar(n->esq, chave);
-  } else {
-    return pesquisar(n->dir, chave);
-  }
+bool pesquisar(t_arvore raiz, int valor) {
+    if (raiz == nullptr)
+        return false;
+    if (valor == raiz->chave)
+        return true;
+    else if (valor < raiz->chave)
+        return pesquisar(raiz->esq, valor);
+    else
+        return pesquisar(raiz->dir, valor);
 }
 
-// Função para exibir a árvore de forma visual
-void mostrararvore(t_arvore raiz) {
-  if (raiz == NULL) return;
-  stack<t_no*> pilhaGlobal;
-  pilhaGlobal.push(raiz);
-  int nVazios = 32;
-  bool linhaVazia = false;
-  cout << endl;
-  while (!linhaVazia) {
-    stack<t_no*> pilhaLocal;
-    linhaVazia = true;
-
-    for (int j = 0; j < nVazios; j++) cout << ' ';
-
-    while (!pilhaGlobal.empty()) {
-      t_no* temp = pilhaGlobal.top();
-      pilhaGlobal.pop();
-      if (temp != NULL) {
-        cout << temp->chave;
-        pilhaLocal.push(temp->esq);
-        pilhaLocal.push(temp->dir);
-
-        if (temp->esq != NULL || temp->dir != NULL) linhaVazia = false;
-      } else {
-        cout << "--";
-        pilhaLocal.push(NULL);
-        pilhaLocal.push(NULL);
-      }
-
-      for (int j = 0; j < nVazios * 2 - 2; j++) cout << ' ';
+// Função para mostrar a árvore de forma balanceada
+void mostrararvore(t_arvore raiz){
+    if (raiz == nullptr) {
+        cout << "--\n";
+        return;
     }
+
+    stack<s_no*> pilhaGlobal;
+    pilhaGlobal.push(raiz);
+    int nVazios = 32;
+    bool linhaVazia = false;
     cout << endl;
-    nVazios /= 2;
-    while (!pilhaLocal.empty()) {
-      pilhaGlobal.push(pilhaLocal.top());
-      pilhaLocal.pop();
-    }
-  }
-  cout << endl;
-}
+    while(!linhaVazia){
+        stack<s_no*> pilhaLocal;
+        linhaVazia = true;
 
-// Função para remover um nó
-t_no* remover(t_no* raiz, int chave) {
-  if (raiz == NULL) return raiz;
+        for(int j=0; j<nVazios; j++)
+            cout << ' ';
 
-  if (chave < raiz->chave) {
-    raiz->esq = remover(raiz->esq, chave);
-  } else if (chave > raiz->chave) {
-    raiz->dir = remover(raiz->dir, chave);
-  } else {
-    // Caso 1: Nó a ser removido tem um filho ou nenhum filho
-    if (raiz->esq == NULL) {
-      t_no* temp = raiz->dir;
-      free(raiz);
-      return temp;
-    } else if (raiz->dir == NULL) {
-      t_no* temp = raiz->esq;
-      free(raiz);
-      return temp;
-    }
+        int count = pilhaGlobal.size();
 
-    // Caso 2: Nó a ser removido tem dois filhos
-    t_no* temp = raiz->dir;
-    while (temp && temp->esq != NULL) temp = temp->esq;
+        while(!pilhaGlobal.empty()){
+            s_no* temp = pilhaGlobal.top();
+            pilhaGlobal.pop();
+            if(temp != nullptr){
+                cout << temp->chave;
+                pilhaLocal.push(temp->esq);
+                pilhaLocal.push(temp->dir);
 
-    raiz->chave = temp->chave;
-
-    raiz->dir = remover(raiz->dir, temp->chave);
-  }
-
-  if (raiz == NULL) return raiz;
-
-  atualizarAltura(raiz);
-  return balancear(raiz);
-}
+                if(temp->esq != nullptr || temp->dir != nullptr)
+                    linhaVazia = false;
+            } else{
+                cout << "--";
+                pilhaLocal.push(nullptr);
+                pilhaLocal.push(nullptr);
+            }
+            for(int j=0; j<nVazios*2-2; j++)
+                cout << ' ';
+        }
+        cout << endl;
+        nVazios = nVazios/2;
+        while(!pilhaLocal.empty()){
+            pilhaGlobal.push( pilhaLocal.top() );
+            pilhaLocal.pop();
+        }
+    }  
+    cout << endl;
+}  
