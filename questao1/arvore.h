@@ -1,21 +1,21 @@
-typedef struct s_no t_no;
+#ifndef ARVORE_H
+#define ARVORE_H
 
-struct s_no{
-	t_no *esq;
-	int chave;
-	t_no *dir;
+// Estrutura do nó da árvore AVL
+struct s_no {
+    s_no *esq;     // Ponteiro para a subárvore esquerda
+    s_no *dir;     // Ponteiro para a subárvore direita
+    int chave;     // Valor armazenado no nó
+    int altura;    // Altura do nó para balanceamento
 };
 
-typedef t_no* t_arvore;
+typedef s_no* t_arvore;
 
-///struct Arvore_str* CriaArvore ( ); 
-t_no *criaNo ();
-bool inserir (t_arvore *, int );
-void mostrararvore(t_arvore *);
-//void inserir(int , struct Arvore_str *);
-/*int Vazia (TipoLista *);
-void Insere (TipoItem , TipoLista *, Apontador); 
-TipoItem RetiraIni (Celula*, TipoLista *); 
-void Imprime (TipoLista* );
-int Tamanho_lista(TipoLista* );
-int Busca(int , TipoLista* );*/
+// Declaração das funções principais
+s_no* criaNo(int valor);
+bool inserir(t_arvore* raiz, int valor);
+bool remover(t_arvore* raiz, int valor);
+bool pesquisar(t_arvore raiz, int valor);
+void mostrararvore(t_arvore raiz);
+
+#endif // ARVORE_H
